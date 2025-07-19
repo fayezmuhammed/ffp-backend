@@ -2,6 +2,7 @@ import joblib
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
+import datetime  # optional for logging pings
 
 app = Flask(__name__)
 CORS(
@@ -40,50 +41,50 @@ def encode_features(data):
     features = []
     
     # 1. Numerical features first (7 features)
-    features.append(time_mapping[data["departure_time"]])  # departure_time
-    features.append(stops_mapping[data["stops"]])         # stops
-    features.append(time_mapping[data["arrival_time"]])    # arrival_time
-    features.append(class_mapping[data["class"]])         # class
-    features.append(float(data["duration"]))              # duration
-    features.append(int(data["days_left"]))               # days_left
-    features.append(day_mapping[data["day"]])             # day
+    features.append(time_mapping[data["departure_time"]])
+    features.append(stops_mapping[data["stops"]])
+    features.append(time_mapping[data["arrival_time"]])
+    features.append(class_mapping[data["class"]])
+    features.append(float(data["duration"]))
+    features.append(int(data["days_left"]))
+    features.append(day_mapping[data["day"]])
     
     # 2. One-hot encode airline (6 features)
     airlines = ["AirAsia", "Air_India", "GO_FIRST", "Indigo", "SpiceJet", "Vistara"]
     features += [int(data["airline"] == a) for a in airlines]
     
-    # 3. One-hot encode source_city (13 features)
+    # 3. One-hot encode source_city (12 features)
     source_cities = ["Ahmedabad", "Bangalore", "Chandigarh", "Chennai", "Coimbatore", 
                     "Delhi", "Hyderabad", "Jaipur", "Kolkata", "Lucknow", "Mumbai", "Pune"]
     features += [int(data["source_city"] == c) for c in source_cities]
     
-    # 4. One-hot encode destination_city (13 features)
+    # 4. One-hot encode destination_city (12 features)
     dest_cities = ["Ahmedabad", "Bangalore", "Chandigarh", "Chennai", "Coimbatore", 
                   "Delhi", "Hyderabad", "Jaipur", "Kolkata", "Lucknow", "Mumbai", "Pune"]
     features += [int(data["destination_city"] == c) for c in dest_cities]
     
     return np.array(features).reshape(1, -1)
 
+# ✅ Health check route for browser/manual checking
 @app.route("/", methods=["GET"])
 def health_check():
     return jsonify({"status": "healthy", "message": "Flight Fare Prediction API is running"})
+
+# ✅ Cron-job-friendly ping route (very lightweight)
+@app.route("/ping", methods=["GET"])
+def ping():
+    print("Ping received at", datetime.datetime.now())
+    return "pong", 200
 
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.get_json()
     try:
-        # First encode all features
         X = encode_features(data)
-        
-        # Scale only the numerical features (days_left and duration)
-        # These are the last 2 features in our encoded array
-        numerical_features = X[:, -2:]  # Last 2 columns
+        numerical_features = X[:, -2:]
         scaled_numerical = scaler.transform(numerical_features)
-        
-        # Replace the numerical features with scaled ones
         X_scaled = X.copy()
         X_scaled[:, -2:] = scaled_numerical
-        
         pred = model.predict(X_scaled)
         return jsonify({"fare": float(pred[0])})
     except Exception as e:
