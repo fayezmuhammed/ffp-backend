@@ -4,7 +4,13 @@ from flask_cors import CORS
 import numpy as np
 
 app = Flask(__name__)
-CORS(app, origins=["https://flight-fare-prediction-coral.vercel.app/"])
+CORS(
+    app,
+    origins=["https://flight-fare-prediction-coral.vercel.app"],
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "OPTIONS"]
+)
 
 # Load ML model and scaler
 model = joblib.load("model.pkl")
