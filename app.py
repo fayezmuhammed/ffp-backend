@@ -71,10 +71,9 @@ def health_check():
     return jsonify({"status": "healthy", "message": "Flight Fare Prediction API is running"})
 
 # ✅ Cron-job-friendly ping route (very lightweight)
-@app.route("/ping", methods=["GET"])
-def ping():
-    print("Ping received at", datetime.datetime.now())
-    return "pong", 200
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "alive"}), 200
 
 @app.route("/predict", methods=["POST"])
 def predict():
