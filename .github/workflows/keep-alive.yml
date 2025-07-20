@@ -1,0 +1,26 @@
+name: Keep Render Server Alive
+
+on:
+  schedule:
+    # Runs every 14 minutes
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Ping Render Server
+      run: |
+        echo "Pinging server at $(date)"
+        sleep $((RANDOM % 60))  # Random delay
+        response=$(curl -s -o /dev/null -w "%{http_code}" \
+          -H "User-Agent: Mozilla/5.0 (HealthCheck)" \
+          https://ffp-backend-u5ez.onrender.com/health)
+        echo "Response code: $response"
+        if [ "$response" = "200" ]; then
+          echo "✅ Server is alive"
+        else
+          echo "❌ Server is not responding"
+        fi
